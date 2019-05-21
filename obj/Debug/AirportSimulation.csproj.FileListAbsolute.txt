@@ -1,0 +1,10 @@
+A:\C#\AirportSimulation\bin\Debug\AirportSimulation.exe.config
+A:\C#\AirportSimulation\bin\Debug\AirportSimulation.exe
+A:\C#\AirportSimulation\bin\Debug\AirportSimulation.pdb
+A:\C#\AirportSimulation\obj\Debug\AirportSimulation.csprojAssemblyReference.cache
+A:\C#\AirportSimulation\obj\Debug\AirportSimulation.Properties.Resources.resources
+A:\C#\AirportSimulation\obj\Debug\AirportSimulation.csproj.GenerateResource.cache
+A:\C#\AirportSimulation\obj\Debug\AirportSimulation.csproj.CoreCompileInputs.cache
+A:\C#\AirportSimulation\obj\Debug\AirportSimulation.exe
+A:\C#\AirportSimulation\obj\Debug\AirportSimulation.pdb
+A:\C#\AirportSimulation\obj\Debug\AirportSimulation.MainForm.resources
