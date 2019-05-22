@@ -19,9 +19,20 @@ namespace AirportSimulation
         public double ElapsedDistance { get; set; } //пройденное расстояние
         public double FilledPlaneWeight { get; set; } //вес заправленного самолета
         public int MaxFlyingMinutes { get; set; } //макс. время полета в минутах
+        public int RemainingFlyingMinutes
+        {
+            get
+            {
+                if (FlightTime != null) return MaxFlyingMinutes - FlightTime.Elapsed.Seconds;
+                else return 0;
+            }
+        }
         public int ServiceBeforeFlightMinutes { get; set; } //время обслуживания перед взлетом
         public bool ReadyToFlight { get; set; } = false;
         public bool IsOnFlight { get; set; } = false;
+        public bool FlightFinished { get; set; } = false;
+        public bool NewAirportSet { get; set; } = false;
+        public bool Crashed { get; set; } = false;
         public int? Seats { get; set; } //кол-во мест у пасс. самолета, знак ? у int? значит что переменная может быть null
         public int? OccupiedSeats { get; set; } //занятых мест
         public double? MaxCargoWeight { get; set; } //макс. вес груза для транс. самолета, может быть null аналогично верхней
@@ -54,6 +65,8 @@ namespace AirportSimulation
 
         public bool PrepareToFlight()
         {
+            FlightFinished = false;
+            NewAirportSet = false;
             if (ReadyToFlight) return ReadyToFlight;
             if (ServiceMinutesRemaining == null && !ReadyToFlight)
             {
@@ -84,12 +97,12 @@ namespace AirportSimulation
                 {
                     FlightTime = new Stopwatch();
                     FlightTime.Start();
-                    CurrentPort.RunwayQueue.Add(this);
+                    CurrentPort.RunwayQueueFlight.Add(this);
                 }
-                if (CurrentPort.RunwayQueue.Count > 0)
+                if (CurrentPort.RunwayQueueFlight.Count > 0)
                 {
-                    if (CurrentPort.PlaneTookRunway == null) CurrentPort.PlaneTookRunway = CurrentPort.RunwayQueue[0];
-                    if (CurrentPort.PlaneTookRunway != CurrentPort.RunwayQueue[0]) return;
+                    if (CurrentPort.PlaneTookRunway == null) CurrentPort.PlaneTookRunway = CurrentPort.RunwayQueueFlight[0];
+                    if (CurrentPort.PlaneTookRunway != CurrentPort.RunwayQueueFlight[0]) return;
                 }
             }
             if (FlightTime != null)
@@ -102,10 +115,11 @@ namespace AirportSimulation
                     FlightTime = null;
                     Status = "Полет";
                     CurrentPort.PlaneTookRunway = null;
-                    if (CurrentPort.RunwayQueue.Count > 0)
+                    if (CurrentPort.RunwayQueueFlight.Count > 0)
                     {
-                        CurrentPort.RunwayQueue.RemoveAt(0);
+                        CurrentPort.RunwayQueueFlight.RemoveAt(0);
                     }
+                    CurrentPort.HangarsTaken--;
                     CurrentPort.Status = "ВПП свободна";
                 }
                 else
@@ -129,7 +143,7 @@ namespace AirportSimulation
             {
                 CalculateDistance();
                 ElapsedDistance += speed / 2;
-                Status = "Полет | Расстояние " + ElapsedDistance + "/" + Distance + " | Скорость " + speed;
+                Status = "Полет | Расстояние " + Math.Round(ElapsedDistance, 2) + "/" + Distance + " | Скорость " + Math.Round(speed, 2);
                 if (ElapsedDistance > Distance)
                 {
                     Status = "Запрос разрешения от диспетчера";
@@ -139,7 +153,55 @@ namespace AirportSimulation
 
         public void FlyToRunway()
         {
+            if (RespondLanding())
+            {
+                Destination.RunwayQueueLanding.Add(this);
+                if (Destination.RunwayQueueFlight.Count <= 0)
+                {
+                    if (ServiceMinutesRemaining == null)
+                    {
+                        ServiceMinutesRemaining = new Stopwatch();
+                        ServiceMinutesRemaining.Start();
+                    }
+                    else if (Destination.HangarsTaken < Destination.HangarsTotal)
+                    {
+                        if (Destination.PlaneTookRunway == null)
+                            Destination.PlaneTookRunway = Destination.RunwayQueueLanding[0];
+                        if (Destination.PlaneTookRunway != Destination.RunwayQueueLanding[0]) return;
+                        Status = "Посадка " + ServiceMinutesRemaining.Elapsed.Seconds + "/5";
+                        Destination.Status = "ВПП занята";
+                        if (ServiceMinutesRemaining.Elapsed.Seconds > 5)
+                        {
+                            FlightFinished = true;
+                            ServiceMinutesRemaining = null;
+                            Status = "Ожидает след. рейса";
+                            Destination.Status = "ВПП свободна";
+                            Destination.HangarsTaken++;
+                            Destination.PlaneTookRunway = null;
+                            if (Destination.RunwayQueueLanding.Count > 0) Destination.RunwayQueueLanding.RemoveAt(0);
+                            CurrentPort = Destination;
+                            ReadyToFlight = false;
+                            IsOnFlight = false;
+                            ElapsedDistance = 0;
+                            Distance = 0;
+                        }
+                    }
+                }
+            }
+        }
 
+        private bool RespondLanding()
+        {
+            if (Destination.RunwayQueueFlight.Count > 0) return false;
+            else return true;
+        }
+
+        public bool IsFlightTimeOver()
+        {
+            if (FlightTime != null)
+                if (FlightTime.ElapsedMilliseconds / 1000 > MaxFlyingMinutes) return true;
+                else return false;
+            else return false;
         }
 
         public void SetNewRandomAirport(List<Airport> ports)
@@ -151,6 +213,8 @@ namespace AirportSimulation
             {
                 Destination = ports[rnd.Next(ports.Count)];
             }
+            NewAirportSet = true;
+            CalculateDistance();
         }
 
         public static void SetRandomPlanesInHangars(List<Airplane> planes, List<Airport> ports)

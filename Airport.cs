@@ -15,9 +15,9 @@ namespace AirportSimulation
         public int HangarsTotal { get; set; } //стояночных мест всего
         public int HangarsAvailable { get; set; } //доступных стоянок
         public int HangarsTaken { get; set; } //занятых стоянок
-        public bool IsRunwayFree { get; set; } = true; //свободна ли ВПП
         public Airplane PlaneTookRunway { get; set; } //самолет на ВПП
-        public List<Airplane> RunwayQueue { get; set; } //очередь на ВПП
+        public List<Airplane> RunwayQueueFlight { get; set; } //очередь на взлет с ВПП
+        public List<Airplane> RunwayQueueLanding { get; set; } //очередь на посадку на ВПП
 
         public Airport(int seed = -1)
         {
@@ -31,7 +31,8 @@ namespace AirportSimulation
             HangarsTotal = rnd.Next(5) + 1;
             HangarsTaken = 0;
             HangarsAvailable = HangarsTotal;
-            RunwayQueue = new List<Airplane>();
+            RunwayQueueFlight = new List<Airplane>();
+            RunwayQueueLanding = new List<Airplane>();
             Status = "ВПП свободна";
         }
 
